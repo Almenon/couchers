@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from couchers import config
 from couchers.db import apply_migrations, session_scope
-from couchers.interceptors import LoggingInterceptor, UpdateLastActiveTimeInterceptor
+from couchers.interceptors import ErrorSanitizationInterceptor, LoggingInterceptor, UpdateLastActiveTimeInterceptor
 from couchers.models import Base
 from couchers.servicers.account import Account
 from couchers.servicers.api import API
@@ -74,7 +74,9 @@ if config.config["ADD_DUMMY_DATA"]:
 logger.info(f"Starting")
 
 auth = Auth(Session)
-open_server = grpc.server(futures.ThreadPoolExecutor(2), interceptors=[LoggingInterceptor()])
+open_server = grpc.server(
+    futures.ThreadPoolExecutor(2), interceptors=[ErrorSanitizationInterceptor(), LoggingInterceptor()]
+)
 open_server.add_insecure_port("[::]:1752")
 auth_pb2_grpc.add_AuthServicer_to_server(auth, open_server)
 bugs_pb2_grpc.add_BugsServicer_to_server(Bugs(), open_server)
@@ -91,6 +93,7 @@ servicer = API(Session)
 server = grpc.server(
     futures.ThreadPoolExecutor(2),
     interceptors=[
+        ErrorSanitizationInterceptor(),
         LoggingInterceptor(),
         auth.get_auth_interceptor(allow_jailed=False),
         UpdateLastActiveTimeInterceptor(servicer.update_last_active_time),
@@ -108,7 +111,11 @@ server.start()
 
 media_server = grpc.server(
     futures.ThreadPoolExecutor(2),
-    interceptors=[LoggingInterceptor(), get_media_auth_interceptor(MEDIA_SERVER_BEARER_TOKEN)],
+    interceptors=[
+        ErrorSanitizationInterceptor(),
+        LoggingInterceptor(),
+        get_media_auth_interceptor(MEDIA_SERVER_BEARER_TOKEN),
+    ],
 )
 media_server.add_insecure_port("[::]:1753")
 media_pb2_grpc.add_MediaServicer_to_server(Media(Session), media_server)
