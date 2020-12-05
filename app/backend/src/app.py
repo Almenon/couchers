@@ -16,6 +16,7 @@ from couchers.servicers.api import API
 from couchers.servicers.auth import Auth
 from couchers.servicers.bugs import Bugs
 from couchers.servicers.conversations import Conversations
+from couchers.servicers.gis import GIS
 from couchers.servicers.jail import Jail
 from couchers.servicers.media import Media, get_media_auth_interceptor
 from couchers.servicers.requests import Requests
@@ -27,6 +28,7 @@ from pb import (
     auth_pb2_grpc,
     bugs_pb2_grpc,
     conversations_pb2_grpc,
+    gis_pb2_grpc,
     jail_pb2_grpc,
     media_pb2_grpc,
     requests_pb2_grpc,
@@ -78,6 +80,8 @@ open_server = grpc.server(futures.ThreadPoolExecutor(2), interceptors=[LoggingIn
 open_server.add_insecure_port("[::]:1752")
 auth_pb2_grpc.add_AuthServicer_to_server(auth, open_server)
 bugs_pb2_grpc.add_BugsServicer_to_server(Bugs(), open_server)
+# TODO: secure server
+gis_pb2_grpc.add_GISServicer_to_server(GIS(Session), open_server)
 open_server.start()
 
 jailed_server = grpc.server(
