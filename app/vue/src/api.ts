@@ -1,4 +1,4 @@
-const URL = process.env.VUE_APP_API_URL
+export const URL = process.env.VUE_APP_API_URL
 
 import { AuthPromiseClient } from "./pb/auth_grpc_web_pb"
 import { JailPromiseClient } from "./pb/jail_grpc_web_pb"
